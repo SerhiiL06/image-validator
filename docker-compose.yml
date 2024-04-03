@@ -1,0 +1,13 @@
+version: "3"
+services:
+  web:
+   build:
+    context: .
+   env_file: .env
+   container_name: image-validator
+   ports:
+     - 8000:8000
+   volumes:
+     - .:/app
+   command: sh -c "uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+  
