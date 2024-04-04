@@ -1,12 +1,10 @@
 import re
 
-
 from openai import OpenAI
-
 
 from core.settings import OPEN_AI_KEY
 
-from .exceptions import SomethingWentWrong, BadRequest
+from .exceptions import BadRequest, SomethingWentWrong
 from .utils import prompt_message, urls_regex
 
 
@@ -14,21 +12,29 @@ class OpenAITools:
     def __init__(self) -> None:
         self._client = OpenAI(api_key=self._key)
 
-    def send_image_urls_for_validation(self, image_list: list[str]) -> list:
+    def send_image_urls_for_validation(
+        self,
+        image_list: list[str],
+        detail: str = "auto",
+    ) -> list:
         correct_urls = self.__validate_urls(image_list)
 
         if correct_urls is None:
             raise BadRequest(400)
 
-        response = self.validate_image_by_urls(image_list)
-        return response
+        response = self.validate_image_by_urls(image_list, detail)
+        return {"images_list": response}
 
-    def validate_image_by_urls(self, urls: list[str]) -> dict:
+    def validate_image_by_urls(
+        self,
+        urls: list[str],
+        detail: str = "auto",
+    ) -> dict:
 
         result = []
 
         for u in urls:
-            gpt_answer = self.__generate_answer_message(u, self._client)
+            gpt_answer = self.__generate_answer_message(u, self._client, detail)
 
             if gpt_answer == "0":
                 result.append(u)
@@ -36,7 +42,12 @@ class OpenAITools:
         return result
 
     @classmethod
-    def __generate_answer_message(cls, image_url: str, client: OpenAI) -> str:
+    def __generate_answer_message(
+        cls,
+        image_url: str,
+        client: OpenAI,
+        detail: str = "auto",
+    ) -> str:
         try:
             answer = client.chat.completions.create(
                 model="gpt-4-vision-preview",
@@ -49,7 +60,7 @@ class OpenAITools:
                                 "type": "image_url",
                                 "image_url": {
                                     "url": image_url,
-                                    "detail": "low",
+                                    "detail": detail,
                                 },
                             },
                         ],
