@@ -1,70 +1,65 @@
 import re
 
-from fastapi import HTTPException, status
+
 from openai import OpenAI
 
 
 from core.settings import OPEN_AI_KEY
 
-from .exceptions import SomethingWentWrong
-from .utils import promt_message, urls_regex
+from .exceptions import SomethingWentWrong, BadRequest
+from .utils import prompt_message, urls_regex
 
 
 class OpenAITools:
-    __AI_KEY = OPEN_AI_KEY
-
     def __init__(self) -> None:
-        self.client = OpenAI(api_key=self.key)
+        self._client = OpenAI(api_key=self._key)
 
-    def send_images_urls_to_validate(self, image_list: list[str]):
+    def send_image_urls_for_validation(self, image_list: list[str]) -> list:
         correct_urls = self.__validate_urls(image_list)
 
         if correct_urls is None:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                {"message": "not any valid urls or image format"},
-            )
+            raise BadRequest(400)
 
-        response = self._validate_images_by_urls(image_list)
+        response = self.validate_image_by_urls(image_list)
         return response
 
-    def _validate_images_by_urls(self, urls: list[str]) -> dict:
+    def validate_image_by_urls(self, urls: list[str]) -> dict:
 
+        result = []
+
+        for u in urls:
+            gpt_answer = self.__generate_answer_message(u, self._client)
+
+            if gpt_answer == "0":
+                result.append(u)
+
+        return result
+
+    @classmethod
+    def __generate_answer_message(cls, image_url: str, client: OpenAI) -> str:
         try:
-            result = []
-
-            for u in urls:
-                jpt_anwser = self.generate_anwser_message(u)
-
-                if jpt_anwser == "0":
-                    result.append(u)
-
-            return result
-
-        except Exception as e:
-            raise SomethingWentWrong(e)
-
-    def generate_anwser_message(self, image_url: str) -> str:
-        answer = self.client.chat.completions.create(
-            model="gpt-4-vision-preview",
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": promt_message},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": image_url,
-                                "detail": "low",
+            answer = client.chat.completions.create(
+                model="gpt-4-vision-preview",
+                messages=[
+                    {
+                        "role": "assistant",
+                        "content": [
+                            {"type": "text", "text": prompt_message},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": image_url,
+                                    "detail": "low",
+                                },
                             },
-                        },
-                    ],
-                }
-            ],
-            max_tokens=300,
-        )
-        return answer.choices[0].message.content
+                        ],
+                    }
+                ],
+                max_tokens=300,
+            )
+            return answer.choices[0].message.content
+        except Exception as e:
+            return SomethingWentWrong(e)
 
     @classmethod
     def __validate_urls(cls, urls: list[str]) -> list[str] | None:
@@ -76,5 +71,6 @@ class OpenAITools:
         return accepted if accepted else None
 
     @property
-    def key(self) -> str:
-        return self.__AI_KEY
+    def _key(self) -> str:
+        "Return the token key from OpenAI."
+        return OPEN_AI_KEY
