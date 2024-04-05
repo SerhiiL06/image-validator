@@ -22,7 +22,7 @@ class OpenAITools:
         if correct_urls is None:
             raise BadRequest(400)
 
-        response = self.validate_image_by_urls(image_list, detail)
+        response = self.validate_image_by_urls(image_list)
         return {"images_list": response}
 
     def validate_image_by_urls(
@@ -34,7 +34,7 @@ class OpenAITools:
         result = []
 
         for u in urls:
-            gpt_answer = self.__generate_answer_message(u, self._client, detail)
+            gpt_answer = self.__generate_answer_message(u, self._client)
 
             if gpt_answer == "0":
                 result.append(u)

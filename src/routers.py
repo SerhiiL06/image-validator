@@ -12,6 +12,5 @@ validate_router = APIRouter()
 async def validate_images(
     service: Annotated[OpenAITools, Depends()],
     data: ImagesListDto,
-    detail: str = "auto",
 ):
-    return service.send_image_urls_for_validation(data.images_list, detail)
+    return service.send_image_urls_for_validation(data.images_list)

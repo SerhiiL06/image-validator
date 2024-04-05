@@ -4,7 +4,9 @@ from httpx import AsyncClient
 
 @pytest.mark.asyncio(scope="session")
 async def test_validate_images(aclient: AsyncClient):
-    wrong_response = await aclient.post("/validate", json={"images_list": ["test"]})
+    wrong_response = await aclient.post(
+        "/validate", json={"images_list": ["test"], "detail": "low"}
+    )
 
     assert wrong_response.status_code == 400
     assert wrong_response.json() == {

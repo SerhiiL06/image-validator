@@ -1,5 +1,7 @@
 .venv
 .env
+.pytest_cache
+nginx.conf
 Pipfile
 Pipfile.lock
 __pycache__/
